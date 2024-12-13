@@ -4,6 +4,9 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import DataInputForm from './DataInputForm';
 import { metricsService } from '../services/metricsService';
+import { companiesData } from '../data/companiesData';
+import CompanySelector from './CompanySelector';
+import CompanyComparison from './CompanyComparison';
 
 interface DataPoint {
   month: string;
@@ -32,6 +35,8 @@ const Dashboard = (): JSX.Element => {
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'high' | 'low'>('all');
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(companiesData[0].id);
+  const [selectedYear, setSelectedYear] = useState<string>("2023");
 
   const calculateTotals = useMemo(() => {
     return metrics.reduce((acc, curr) => ({
@@ -56,7 +61,7 @@ const Dashboard = (): JSX.Element => {
       try {
         const startDate = dateRange[0]?.toISOString() || '2024-01-01';
         const endDate = dateRange[1]?.toISOString() || '2024-12-31';
-        const data = await metricsService.getMetrics(startDate, endDate);
+        const data = await metricsService.getCompanyMetrics(selectedCompanyId, startDate, endDate);
         const transformedData = data.map(d => ({
           month: new Date(d.date).toLocaleString('default', { month: 'short' }),
           emissions: d.emissions,
@@ -72,7 +77,7 @@ const Dashboard = (): JSX.Element => {
     };
 
     fetchInitialData();
-  }, [dateRange]);
+  }, [dateRange, selectedCompanyId]);
 
   const handleExportData = async () => {
     try {
@@ -95,17 +100,30 @@ const Dashboard = (): JSX.Element => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Sustainability Dashboard</h1>
         <div className="flex gap-4">
-          <div className="flex items-center gap-2">
-          <DatePicker
-            selectsRange
-            startDate={dateRange[0]}
-            endDate={dateRange[1]}
-            onChange={(dates) => {
+            <CompanySelector 
+            companies={companiesData}
+            selectedCompanyId={selectedCompanyId}
+            onSelectCompany={setSelectedCompanyId}
+            />
+            <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="px-3 py-2 border rounded-md"
+            >
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+        </select>
+        <div className="flex items-center gap-2">
+            <DatePicker
+              selectsRange
+              startDate={dateRange[0]}
+              endDate={dateRange[1]}
+              onChange={(dates) => {
                 const [start, end] = dates;
                 setDateRange([start, end]);
-            }}
-            className="px-3 py-2 border rounded-md"
-            placeholderText="Select date range"
+              }}
+              className="px-3 py-2 border rounded-md"
+              placeholderText="Select date range"
             />
           </div>
           <button
@@ -183,6 +201,11 @@ const Dashboard = (): JSX.Element => {
           </div>
         )}
       </div>
+
+      <CompanyComparison 
+        companies={companiesData}
+        selectedYear={selectedYear}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-lg shadow">
