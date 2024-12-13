@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import DatePicker from 'react-datepicker';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import DataInputForm from './DataInputForm';
 import { metricsService } from '../services/metricsService';
@@ -76,8 +76,8 @@ const Dashboard = (): JSX.Element => {
 
   const handleExportData = async () => {
     try {
-      const startDate = dateRange[0]?.toISOString() || '2024-01-01';
-      const endDate = dateRange[1]?.toISOString() || '2024-12-31';
+      const startDate = dateRange[0]?.toISOString().split('T')[0] || '2024-01-01';
+      const endDate = dateRange[1]?.toISOString().split('T')[0] || '2024-12-31';
       const blob = await metricsService.exportReport(startDate, endDate);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -96,13 +96,16 @@ const Dashboard = (): JSX.Element => {
         <h1 className="text-3xl font-bold text-gray-900">Sustainability Dashboard</h1>
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
-            <DatePicker
-              selectsRange
-              startDate={dateRange[0]}
-              endDate={dateRange[1]}
-              onChange={(update) => setDateRange(update)}
-              className="px-3 py-2 border rounded-md"
-              placeholderText="Select date range"
+          <DatePicker
+            selectsRange
+            startDate={dateRange[0]}
+            endDate={dateRange[1]}
+            onChange={(dates) => {
+                const [start, end] = dates;
+                setDateRange([start, end]);
+            }}
+            className="px-3 py-2 border rounded-md"
+            placeholderText="Select date range"
             />
           </div>
           <button

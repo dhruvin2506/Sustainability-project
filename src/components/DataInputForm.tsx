@@ -1,228 +1,213 @@
-import { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import DatePicker from 'react-datepicker';
-import "react-datepicker/dist/react-datepicker.css";
-import DataInputForm from './DataInputForm';
+import { useState } from 'react';
 import { metricsService } from '../services/metricsService';
 
-interface DataPoint {
-  month: string;
+interface MetricsFormData {
+  date: string;
   emissions: number;
   energy: number;
   waste: number;
+  notes: string;
 }
 
-interface Totals {
-  totalEmissions: number;
-  totalEnergy: number;
-  totalWaste: number;
+interface FormErrors {
+  date?: string;
+  emissions?: string;
+  energy?: string;
+  waste?: string;
+  submit?: string;
 }
 
-const LoadingSpinner = () => (
-  <div className="flex justify-center items-center h-40">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-  </div>
-);
+const DataInputForm = (): JSX.Element => {
+  const [formData, setFormData] = useState<MetricsFormData>({
+    date: new Date().toISOString().split('T')[0],
+    emissions: 0,
+    energy: 0,
+    waste: 0,
+    notes: ''
+  });
 
-const sampleData: DataPoint[] = [
-  { month: 'Jan', emissions: 400, energy: 240, waste: 180 },
-  { month: 'Feb', emissions: 300, energy: 220, waste: 170 },
-  { month: 'Mar', emissions: 350, energy: 230, waste: 190 },
-  { month: 'Apr', emissions: 280, energy: 200, waste: 160 }
-];
-const Dashboard = (): JSX.Element => {
-  const [metrics, setMetrics] = useState(sampleData);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'high' | 'low'>('all');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const calculateTotals = useMemo((): Totals => {
-    return metrics.reduce((acc, curr) => ({
-      totalEmissions: acc.totalEmissions + curr.emissions,
-      totalEnergy: acc.totalEnergy + curr.energy,
-      totalWaste: acc.totalWaste + curr.waste
-    }), { totalEmissions: 0, totalEnergy: 0, totalWaste: 0 });
-  }, [metrics]);
+  const validateForm = (): FormErrors => {
+    const newErrors: FormErrors = {};
+    if (!formData.date) newErrors.date = 'Date is required';
+    if (formData.emissions < 0) newErrors.emissions = 'Emissions cannot be negative';
+    if (formData.energy < 0) newErrors.energy = 'Energy cannot be negative';
+    if (formData.waste < 0) newErrors.waste = 'Waste cannot be negative';
+    return newErrors;
+  };
 
-  const filteredData = useMemo(() => {
-    return metrics.filter(metric => {
-      const matchesSearch = metric.month.toLowerCase().includes(searchTerm.toLowerCase());
-      if (filterType === 'high') return matchesSearch && metric.emissions > 350;
-      if (filterType === 'low') return matchesSearch && metric.emissions < 350;
-      return matchesSearch;
-    });
-  }, [metrics, searchTerm, filterType]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formErrors = validateForm();
+    
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      return;
+    }
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      setIsLoading(true);
-      try {
-        const startDate = dateRange[0]?.toISOString() || '2024-01-01';
-        const endDate = dateRange[1]?.toISOString() || '2024-12-31';
-        const data = await metricsService.getMetrics(startDate, endDate);
-        const transformedData = data.map(d => ({
-          month: new Date(d.date).toLocaleString('default', { month: 'short' }),
-          emissions: d.emissions,
-          energy: d.energy,
-          waste: d.waste
-        }));
-        setMetrics(transformedData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error fetching metrics');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialData();
-  }, [dateRange]);
-
-  const handleExportData = async () => {
+    setIsSubmitting(true);
+    setErrors({});
+    
     try {
-      const startDate = dateRange[0]?.toISOString() || '2024-01-01';
-      const endDate = dateRange[1]?.toISOString() || '2024-12-31';
-      const blob = await metricsService.exportReport(startDate, endDate);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'sustainability-metrics.csv';
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error exporting data');
+      await metricsService.saveMetrics(formData);
+      setSubmitSuccess(true);
+      setFormData({
+        date: new Date().toISOString().split('T')[0],
+        emissions: 0,
+        energy: 0,
+        waste: 0,
+        notes: ''
+      });
+      
+      // Reset success message after 3 seconds
+      setTimeout(() => setSubmitSuccess(false), 3000);
+    } catch (error) {
+      setErrors({ 
+        ...errors, 
+        submit: 'Failed to save metrics. Please try again.' 
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const parsedValue = e.target.type === 'number' ? parseFloat(value) || 0 : value;
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: parsedValue
+    }));
+
+    // Clear error for this field if it exists
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name as keyof FormErrors];
+        return newErrors;
+      });
+    }
+  };
+
   return (
-    <div className="p-6 text-gray-800">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Sustainability Dashboard</h1>
-        <div className="flex gap-4">
-          <div className="flex items-center gap-2">
-            <DatePicker
-              selectsRange
-              startDate={dateRange[0]}
-              endDate={dateRange[1]}
-              onChange={(update) => setDateRange(update)}
-              className="px-3 py-2 border rounded-md"
-              placeholderText="Select date range"
-            />
-          </div>
-          <button
-            onClick={handleExportData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Export Data
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800">Total Carbon Emissions</h2>
-          <p className="text-2xl text-emerald-600">{calculateTotals.totalEmissions.toLocaleString()} kg CO2</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800">Energy Usage</h2>
-          <p className="text-2xl text-blue-600">{calculateTotals.totalEnergy.toLocaleString()} kWh</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800">Waste Generated</h2>
-          <p className="text-2xl text-amber-600">{calculateTotals.totalWaste.toLocaleString()} kg</p>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <DataInputForm />
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Environmental Impact Trends</h2>
-          <div className="flex gap-4">
-            <input
-              type="text"
-              placeholder="Search by month..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-3 py-2 border rounded-md"
-            />
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as 'all' | 'high' | 'low')}
-              className="px-3 py-2 border rounded-md"
-            >
-              <option value="all">All Emissions</option>
-              <option value="high">High Emissions</option>
-              <option value="low">Low Emissions</option>
-            </select>
-          </div>
-        </div>
-        {isLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={filteredData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="emissions" stroke="#059669" strokeWidth={2} />
-                <Line type="monotone" dataKey="energy" stroke="#2563eb" strokeWidth={2} />
-                <Line type="monotone" dataKey="waste" stroke="#d97706" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+    <div className="bg-white p-6 rounded-lg shadow">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Add New Metrics</h2>
+        {submitSuccess && (
+          <div className="bg-green-100 text-green-700 px-4 py-2 rounded">
+            Metrics saved successfully!
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">Reduction Goals</h2>
-          <ul className="space-y-2">
-            <li className="flex items-center justify-between">
-              <span className="text-gray-700">Carbon Emissions</span>
-              <span className="text-emerald-600 font-semibold">-15%</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-gray-700">Energy Usage</span>
-              <span className="text-blue-600 font-semibold">-8%</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <span className="text-gray-700">Waste Generation</span>
-              <span className="text-amber-600 font-semibold">-5%</span>
-            </li>
-          </ul>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date</label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500
+                ${errors.date ? 'border-red-300' : 'border-gray-300'}`}
+            />
+            {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
+          </div>
+          <div>
+            <label htmlFor="emissions" className="block text-sm font-medium text-gray-700">Carbon Emissions (kg CO2)</label>
+            <input
+              type="number"
+              id="emissions"
+              name="emissions"
+              value={formData.emissions}
+              onChange={handleChange}
+              min="0"
+              step="0.1"
+              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500
+                ${errors.emissions ? 'border-red-300' : 'border-gray-300'}`}
+            />
+            {errors.emissions && <p className="mt-1 text-sm text-red-600">{errors.emissions}</p>}
+          </div>
+          <div>
+            <label htmlFor="energy" className="block text-sm font-medium text-gray-700">Energy Usage (kWh)</label>
+            <input
+              type="number"
+              id="energy"
+              name="energy"
+              value={formData.energy}
+              onChange={handleChange}
+              min="0"
+              step="0.1"
+              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500
+                ${errors.energy ? 'border-red-300' : 'border-gray-300'}`}
+            />
+            {errors.energy && <p className="mt-1 text-sm text-red-600">{errors.energy}</p>}
+          </div>
+          <div>
+            <label htmlFor="waste" className="block text-sm font-medium text-gray-700">Waste Generated (kg)</label>
+            <input
+              type="number"
+              id="waste"
+              name="waste"
+              value={formData.waste}
+              onChange={handleChange}
+              min="0"
+              step="0.1"
+              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500
+                ${errors.waste ? 'border-red-300' : 'border-gray-300'}`}
+            />
+            {errors.waste && <p className="mt-1 text-sm text-red-600">{errors.waste}</p>}
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">Recommendations</h2>
-          <ul className="space-y-2">
-            <li className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-              <span className="text-gray-700">Switch to LED lighting to reduce energy consumption</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-              <span className="text-gray-700">Implement recycling program for paper waste</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-              <span className="text-gray-700">Regular maintenance of HVAC systems</span>
-            </li>
-          </ul>
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notes</label>
+          <textarea
+            id="notes"
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            rows={3}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+          />
         </div>
-      </div>
+        
+        {errors.submit && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {errors.submit}
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 
+              focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+              disabled:opacity-50 disabled:cursor-not-allowed
+              flex items-center gap-2`}
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              'Save Metrics'
+            )}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
 
-export default Dashboard;
+export default DataInputForm;
