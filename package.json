@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.7",
+    "@types/react-datepicker": "^6.2.0",
     "date-fns": "^4.1.0",
+    "piechart": "^1.0.0",
     "react": "^18.2.0",
+    "react-datepicker": "^7.5.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.10.3"
   },

@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useState, useEffect, useMemo } from 'react';
+import { LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 import DataInputForm from './DataInputForm';
 import { metricsService } from '../services/metricsService';
 
@@ -17,18 +19,44 @@ const sampleData: DataPoint[] = [
   { month: 'Apr', emissions: 280, energy: 200, waste: 160 }
 ];
 
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-40">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+  </div>
+);
+
 const Dashboard = (): JSX.Element => {
   const [metrics, setMetrics] = useState(sampleData);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'high' | 'low'>('all');
+
+  const calculateTotals = useMemo(() => {
+    return metrics.reduce((acc, curr) => ({
+      totalEmissions: acc.totalEmissions + curr.emissions,
+      totalEnergy: acc.totalEnergy + curr.energy,
+      totalWaste: acc.totalWaste + curr.waste
+    }), { totalEmissions: 0, totalEnergy: 0, totalWaste: 0 });
+  }, [metrics]);
+
+  const filteredData = useMemo(() => {
+    return metrics.filter(metric => {
+      const matchesSearch = metric.month.toLowerCase().includes(searchTerm.toLowerCase());
+      if (filterType === 'high') return matchesSearch && metric.emissions > 350;
+      if (filterType === 'low') return matchesSearch && metric.emissions < 350;
+      return matchesSearch;
+    });
+  }, [metrics, searchTerm, filterType]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsLoading(true);
       try {
-        const startDate = '2024-01-01';
-        const endDate = '2024-12-31';
+        const startDate = dateRange[0]?.toISOString() || '2024-01-01';
+        const endDate = dateRange[1]?.toISOString() || '2024-12-31';
         const data = await metricsService.getMetrics(startDate, endDate);
-        // Transform the data to match our DataPoint interface
         const transformedData = data.map(d => ({
           month: new Date(d.date).toLocaleString('default', { month: 'short' }),
           emissions: d.emissions,
@@ -37,19 +65,19 @@ const Dashboard = (): JSX.Element => {
         }));
         setMetrics(transformedData);
       } catch (error) {
-        console.error('Error fetching metrics:', error);
+        setError(error instanceof Error ? error.message : 'Error fetching metrics');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchInitialData();
-  }, []);
+  }, [dateRange]);
 
   const handleExportData = async () => {
     try {
-      const startDate = '2024-01-01';
-      const endDate = '2024-12-31';
+      const startDate = dateRange[0]?.toISOString() || '2024-01-01';
+      const endDate = dateRange[1]?.toISOString() || '2024-12-31';
       const blob = await metricsService.exportReport(startDate, endDate);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -58,7 +86,7 @@ const Dashboard = (): JSX.Element => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting data:', error);
+      setError(error instanceof Error ? error.message : 'Error exporting data');
     }
   };
 
@@ -66,44 +94,79 @@ const Dashboard = (): JSX.Element => {
     <div className="p-6 text-gray-800">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Sustainability Dashboard</h1>
-        <button
-          onClick={handleExportData}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Export Data
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800">Total Carbon Emissions</h2>
-          <p className="text-2xl text-emerald-600">1,330 kg CO2</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800">Energy Usage</h2>
-          <p className="text-2xl text-blue-600">890 kWh</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800">Waste Generated</h2>
-          <p className="text-2xl text-amber-600">700 kg</p>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <DatePicker
+              selectsRange
+              startDate={dateRange[0]}
+              endDate={dateRange[1]}
+              onChange={(update) => setDateRange(update)}
+              className="px-3 py-2 border rounded-md"
+              placeholderText="Select date range"
+            />
+          </div>
+          <button
+            onClick={handleExportData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Export Data
+          </button>
         </div>
       </div>
 
-      {/* Data Input Form */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-2 text-gray-800">Total Carbon Emissions</h2>
+          <p className="text-2xl text-emerald-600">{calculateTotals.totalEmissions.toLocaleString()} kg CO2</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-2 text-gray-800">Energy Usage</h2>
+          <p className="text-2xl text-blue-600">{calculateTotals.totalEnergy.toLocaleString()} kWh</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-2 text-gray-800">Waste Generated</h2>
+          <p className="text-2xl text-amber-600">{calculateTotals.totalWaste.toLocaleString()} kg</p>
+        </div>
+      </div>
+
       <div className="mb-6">
         <DataInputForm />
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">Environmental Impact Trends</h2>
-        {isLoading ? (
-          <div className="h-64 flex items-center justify-center">
-            <p>Loading data...</p>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Environmental Impact Trends</h2>
+          <div className="flex gap-4">
+            <input
+              type="text"
+              placeholder="Search by month..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as 'all' | 'high' | 'low')}
+              className="px-3 py-2 border rounded-md"
+            >
+              <option value="all">All Emissions</option>
+              <option value="high">High Emissions</option>
+              <option value="low">Low Emissions</option>
+            </select>
           </div>
+        </div>
+        {isLoading ? (
+          <LoadingSpinner />
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={metrics}>
+              <LineChart data={filteredData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
