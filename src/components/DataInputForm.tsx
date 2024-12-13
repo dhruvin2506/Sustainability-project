@@ -114,7 +114,7 @@ const DataInputForm = (): JSX.Element => {
               name="date"
               value={formData.date}
               onChange={handleChange}
-              className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 bg-white text-gray-900" 
+              className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 bg-white text-gray-900
                 ${errors.date ? 'border-red-300' : 'border-gray-300'}`}
             />
             {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
@@ -129,7 +129,7 @@ const DataInputForm = (): JSX.Element => {
               onChange={handleChange}
               min="0"
               step="0.1"
-              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500
+              className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 bg-white text-gray-900
                 ${errors.emissions ? 'border-red-300' : 'border-gray-300'}`}
             />
             {errors.emissions && <p className="mt-1 text-sm text-red-600">{errors.emissions}</p>}
@@ -144,7 +144,7 @@ const DataInputForm = (): JSX.Element => {
               onChange={handleChange}
               min="0"
               step="0.1"
-              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500
+              className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 bg-white text-gray-900
                 ${errors.energy ? 'border-red-300' : 'border-gray-300'}`}
             />
             {errors.energy && <p className="mt-1 text-sm text-red-600">{errors.energy}</p>}
@@ -159,7 +159,7 @@ const DataInputForm = (): JSX.Element => {
               onChange={handleChange}
               min="0"
               step="0.1"
-              className={`mt-1 block w-full rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500
+              className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 bg-white text-gray-900
                 ${errors.waste ? 'border-red-300' : 'border-gray-300'}`}
             />
             {errors.waste && <p className="mt-1 text-sm text-red-600">{errors.waste}</p>}
