@@ -122,7 +122,7 @@ const Dashboard = (): JSX.Element => {
                 const [start, end] = dates;
                 setDateRange([start, end]);
               }}
-              className="px-3 py-2 border rounded-md"
+              className="px-3 py-2 border rounded-md bg-white text-gray-900"
               placeholderText="Select date range"
             />
           </div>
@@ -169,12 +169,12 @@ const Dashboard = (): JSX.Element => {
               placeholder="Search by month..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-3 py-2 border rounded-md"
+              className="px-3 py-2 border rounded-md bg-white text-gray-900"
             />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as 'all' | 'high' | 'low')}
-              className="px-3 py-2 border rounded-md"
+              className="px-3 py-2 border rounded-md bg-white text-gray-900"
             >
               <option value="all">All Emissions</option>
               <option value="high">High Emissions</option>
