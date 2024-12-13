@@ -108,7 +108,7 @@ const Dashboard = (): JSX.Element => {
             <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md  bg-white text-gray-900"
             >
             <option value="2023">2023</option>
             <option value="2022">2022</option>
