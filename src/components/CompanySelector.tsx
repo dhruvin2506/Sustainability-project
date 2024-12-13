@@ -13,10 +13,10 @@ const CompanySelector = ({ companies, selectedCompanyId, onSelectCompany }: Comp
       <select
         value={selectedCompanyId}
         onChange={(e) => onSelectCompany(e.target.value)}
-        className="px-4 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500"
+        className="px-4 py-2 border rounded-md shadow-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
       >
         {companies.map((company) => (
-          <option key={company.id} value={company.id}>
+          <option key={company.id} value={company.id} className="text-gray-900 bg-white">
             {company.name}
           </option>
         ))}
