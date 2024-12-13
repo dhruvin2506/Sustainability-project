@@ -11,8 +11,8 @@ const HistoricalMetrics = ({ company, years }: HistoricalMetricsProps): JSX.Elem
   const historicalData = years.map(year => ({
     year,
     ...company.metrics[year],
-    industryAvgEmissions: company.benchmarks?.industryAverageEmissions,
-    industryAvgEnergy: company.benchmarks?.industryAverageEnergy
+    industryAvgEmissions: company.benchmarks.industryAverageEmissions,
+    industryAvgEnergy: company.benchmarks.industryAverageEnergy
   }));
 
   return (
