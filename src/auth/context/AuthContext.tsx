@@ -1,5 +1,5 @@
 // src/auth/context/AuthContext.tsx
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { User, AuthState } from '../types/auth.types';
 
 interface AuthContextType extends AuthState {
@@ -85,12 +85,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  useEffect(() => {
+    console.log('AuthState:', state);
+  }, [state]);
+
   const login = async (email: string, password: string) => {
     try {
       dispatch({ type: 'AUTH_START' });
       // TODO: Implement actual login logic with your backend
-      // Using password in the TODO comment to show it will be used with real backend
-      console.log('Will use password:', password); // Temporary to show usage
+      console.log('Logging in with:', { email, password });
       const user = { id: '1', email, firstName: 'John', lastName: 'Doe', createdAt: new Date() };
       dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error) {
@@ -98,13 +101,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  // Modify the register function to use the password
   const register = async (firstName: string, lastName: string, email: string, password: string) => {
     try {
       dispatch({ type: 'AUTH_START' });
       // TODO: Implement actual registration logic
-      // Using password in the TODO comment to show it will be used with real backend
-      console.log('Will use password for registration:', password); // Temporary to show usage
+      console.log('Registering with:', { firstName, lastName, email, password });
       const user = { id: '1', email, firstName, lastName, createdAt: new Date() };
       dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error) {
