@@ -1,4 +1,3 @@
-// src/auth/context/AuthContext.tsx
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { User, AuthState } from '../types/auth.types';
 
@@ -92,37 +91,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       dispatch({ type: 'AUTH_START' });
-      // TODO: Implement actual login logic with your backend
       console.log('Logging in with:', { email, password });
-      const user = { id: '1', email, firstName: 'John', lastName: 'Doe', createdAt: new Date() };
-      dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      // Simulate an API call
+      setTimeout(() => {
+        const user = { id: '1', email, firstName: 'John', lastName: 'Doe', createdAt: new Date() };
+        dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      }, 1000);
     } catch (error) {
       dispatch({ type: 'AUTH_FAILURE', payload: error instanceof Error ? error.message : 'An error occurred' });
     }
   };
-  
+
   const register = async (firstName: string, lastName: string, email: string, password: string) => {
     try {
       dispatch({ type: 'AUTH_START' });
-      // TODO: Implement actual registration logic
       console.log('Registering with:', { firstName, lastName, email, password });
-      const user = { id: '1', email, firstName, lastName, createdAt: new Date() };
-      dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      // Simulate an API call
+      setTimeout(() => {
+        const user = { id: '1', email, firstName, lastName, createdAt: new Date() };
+        dispatch({ type: 'AUTH_SUCCESS', payload: user });
+      }, 1000);
     } catch (error) {
       dispatch({ type: 'AUTH_FAILURE', payload: error instanceof Error ? error.message : 'An error occurred' });
     }
   };
 
   const logout = async () => {
-    // TODO: Implement logout logic
-    dispatch({ type: 'LOGOUT' });
+    console.log('Logging out');
+    // Simulate an API call
+    setTimeout(() => {
+      dispatch({ type: 'LOGOUT' });
+    }, 1000);
   };
 
   const updateProfile = async (userData: Partial<User>) => {
     try {
       dispatch({ type: 'UPDATE_PROFILE_START' });
-      // TODO: Implement profile update logic
-      dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: userData });
+      console.log('Updating profile with:', userData);
+      // Simulate an API call
+      setTimeout(() => {
+        dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: userData });
+      }, 1000);
     } catch (error) {
       dispatch({ type: 'UPDATE_PROFILE_FAILURE', payload: error instanceof Error ? error.message : 'An error occurred' });
     }
