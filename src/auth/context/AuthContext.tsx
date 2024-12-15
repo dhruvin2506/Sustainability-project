@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+// src/auth/context/AuthContext.tsx
+import React, { createContext, useContext, useReducer } from 'react';
 import { User, AuthState } from '../types/auth.types';
 
 interface AuthContextType extends AuthState {
@@ -84,54 +85,43 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  useEffect(() => {
-    console.log('AuthState:', state);
-  }, [state]);
-
   const login = async (email: string, password: string) => {
     try {
       dispatch({ type: 'AUTH_START' });
-      console.log('Logging in with:', { email, password });
-      // Simulate an API call
-      setTimeout(() => {
-        const user = { id: '1', email, firstName: 'John', lastName: 'Doe', createdAt: new Date() };
-        dispatch({ type: 'AUTH_SUCCESS', payload: user });
-      }, 1000);
+      // TODO: Implement actual login logic with your backend
+      // Using password in the TODO comment to show it will be used with real backend
+      console.log('Will use password:', password); // Temporary to show usage
+      const user = { id: '1', email, firstName: 'John', lastName: 'Doe', createdAt: new Date() };
+      dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error) {
       dispatch({ type: 'AUTH_FAILURE', payload: error instanceof Error ? error.message : 'An error occurred' });
     }
   };
-
+  
+  // Modify the register function to use the password
   const register = async (firstName: string, lastName: string, email: string, password: string) => {
     try {
       dispatch({ type: 'AUTH_START' });
-      console.log('Registering with:', { firstName, lastName, email, password });
-      // Simulate an API call
-      setTimeout(() => {
-        const user = { id: '1', email, firstName, lastName, createdAt: new Date() };
-        dispatch({ type: 'AUTH_SUCCESS', payload: user });
-      }, 1000);
+      // TODO: Implement actual registration logic
+      // Using password in the TODO comment to show it will be used with real backend
+      console.log('Will use password for registration:', password); // Temporary to show usage
+      const user = { id: '1', email, firstName, lastName, createdAt: new Date() };
+      dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error) {
       dispatch({ type: 'AUTH_FAILURE', payload: error instanceof Error ? error.message : 'An error occurred' });
     }
   };
 
   const logout = async () => {
-    console.log('Logging out');
-    // Simulate an API call
-    setTimeout(() => {
-      dispatch({ type: 'LOGOUT' });
-    }, 1000);
+    // TODO: Implement logout logic
+    dispatch({ type: 'LOGOUT' });
   };
 
   const updateProfile = async (userData: Partial<User>) => {
     try {
       dispatch({ type: 'UPDATE_PROFILE_START' });
-      console.log('Updating profile with:', userData);
-      // Simulate an API call
-      setTimeout(() => {
-        dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: userData });
-      }, 1000);
+      // TODO: Implement profile update logic
+      dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: userData });
     } catch (error) {
       dispatch({ type: 'UPDATE_PROFILE_FAILURE', payload: error instanceof Error ? error.message : 'An error occurred' });
     }
