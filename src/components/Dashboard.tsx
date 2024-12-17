@@ -5,14 +5,33 @@ import "react-datepicker/dist/react-datepicker.css";
 import DataInputForm from './DataInputForm';
 import { metricsService } from '../services/metricsService';
 import { companiesData } from '../data/companiesData';
+import { companyDataService } from '../services/companyDataService';
 import CompanySelector from './CompanySelector';
 import CompanyComparison from './CompanyComparison';
+import YearOverYearComparison from './YearOverYearComparison';
+import HistoricalMetrics from './HistoricalMetrics';
+import GoalTracking from './GoalTracking';
 
+interface TickerSymbols {
+  [key: string]: string;
+  msft: string;
+  aapl: string;
+  googl: string;
+  amzn: string;
+  tsla: string;
+}
 interface DataPoint {
   month: string;
   emissions: number;
   energy: number;
   waste: number;
+}
+
+interface RealTimeData {
+  environmental: number;
+  social: number;
+  governance: number;
+  totalEsg: number;
 }
 
 const sampleData: DataPoint[] = [
@@ -37,6 +56,7 @@ const Dashboard = (): JSX.Element => {
   const [filterType, setFilterType] = useState<'all' | 'high' | 'low'>('all');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(companiesData[0].id);
   const [selectedYear, setSelectedYear] = useState<string>("2023");
+  const [realTimeData, setRealTimeData] = useState<RealTimeData | null>(null);
 
   const calculateTotals = useMemo(() => {
     return metrics.reduce((acc, curr) => ({
@@ -54,6 +74,24 @@ const Dashboard = (): JSX.Element => {
       return matchesSearch;
     });
   }, [metrics, searchTerm, filterType]);
+
+  useEffect(() => {
+    const fetchRealTimeData = async () => {
+      try {
+        const ticker = companyDataService.getTickerSymbols[selectedCompanyId as keyof TickerSymbols];
+        if (ticker) {
+          const data = await companyDataService.getCompanyESGData(ticker);
+          setRealTimeData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching real-time data:', error instanceof Error ? error.message : 'An error occurred');
+      }
+    };
+  
+    fetchRealTimeData();
+    const interval = setInterval(fetchRealTimeData, 60000);
+    return () => clearInterval(interval);
+  }, [selectedCompanyId]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -155,6 +193,31 @@ const Dashboard = (): JSX.Element => {
           <p className="text-2xl text-amber-600">{calculateTotals.totalWaste.toLocaleString()} kg</p>
         </div>
       </div>
+      {realTimeData && (
+  <div className="bg-white p-4 rounded-lg shadow">
+    <h2 className="text-xl font-semibold mb-4 text-gray-800">ESG Score Goals</h2>
+    <ul className="space-y-2">
+      <li className="flex items-center justify-between">
+        <span className="text-gray-700">Environmental Score</span>
+        <span className={`font-semibold ${realTimeData.environmental > 70 ? 'text-green-600' : 'text-red-600'}`}>
+          {realTimeData.environmental.toFixed(1)}
+        </span>
+      </li>
+      <li className="flex items-center justify-between">
+        <span className="text-gray-700">Social Score</span>
+        <span className={`font-semibold ${realTimeData.social > 70 ? 'text-green-600' : 'text-red-600'}`}>
+          {realTimeData.social.toFixed(1)}
+        </span>
+      </li>
+      <li className="flex items-center justify-between">
+        <span className="text-gray-700">Governance Score</span>
+        <span className={`font-semibold ${realTimeData.governance > 70 ? 'text-green-600' : 'text-red-600'}`}>
+          {realTimeData.governance.toFixed(1)}
+        </span>
+      </li>
+    </ul>
+  </div>
+)}
 
       <div className="mb-6">
         <DataInputForm />
@@ -206,6 +269,20 @@ const Dashboard = (): JSX.Element => {
         companies={companiesData}
         selectedYear={selectedYear}
       />
+      <div className="grid grid-cols-1 gap-6 mb-6">
+  <HistoricalMetrics 
+    company={companiesData.find(c => c.id === selectedCompanyId)!}
+    months={12}
+  />
+  
+  <YearOverYearComparison 
+    company={companiesData.find(c => c.id === selectedCompanyId)!}
+  />
+
+  <GoalTracking 
+    company={companiesData.find(c => c.id === selectedCompanyId)!}
+  />
+</div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-lg shadow">
@@ -226,22 +303,28 @@ const Dashboard = (): JSX.Element => {
           </ul>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">Recommendations</h2>
-          <ul className="space-y-2">
-            <li className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-              <span className="text-gray-700">Switch to LED lighting to reduce energy consumption</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-              <span className="text-gray-700">Implement recycling program for paper waste</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-              <span className="text-gray-700">Regular maintenance of HVAC systems</span>
-            </li>
-          </ul>
-        </div>
+  <h2 className="text-xl font-semibold mb-4 text-gray-800">ESG Recommendations</h2>
+  <ul className="space-y-2">
+    {realTimeData && realTimeData.environmental < 70 && (
+      <li className="flex items-center gap-2">
+        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+        <span className="text-gray-700">Implement environmental management system</span>
+      </li>
+    )}
+    {realTimeData && realTimeData.social < 70 && (
+      <li className="flex items-center gap-2">
+        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+        <span className="text-gray-700">Enhance stakeholder engagement programs</span>
+      </li>
+    )}
+    {realTimeData && realTimeData.governance < 70 && (
+      <li className="flex items-center gap-2">
+        <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+        <span className="text-gray-700">Strengthen corporate governance practices</span>
+      </li>
+    )}
+  </ul>
+</div>
       </div>
     </div>
   );
